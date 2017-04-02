@@ -1,0 +1,44 @@
+let 
+//DOCUMENTATION : https://msdn.microsoft.com/en-us/office-365/office-365-service-communications-api-reference#get-current-status
+
+//0. Create an application "client native" in your Azure AD, allow it to access the O365 management API.
+//See : https://msdn.microsoft.com/en-us/office-365/get-started-with-office-365-management-apis
+
+//1. Get the bearer by browsing this adress -- Note the bearer is available only for severals minutes, you'll need to re-generate it after this time. I will work on a v2 to by pass this problem.
+//https://login.windows.net/common/oauth2/authorize?response_type=code&resource=https%3A%2F%2Fmanage.office.com&client_id=CLIENT ID OF YOUR APP&redirect_uri=https://localhost:12345/ 
+
+//2. You will be redirected to this adress : https://localhost:12345?code={THE BEARER IS HERE - COPY IT}...
+
+//3. Past the bearer here :
+    Bearer = "YOUR BEARER", 
+
+//4. CHange the "client_id" and "client_secret" values bellow, with the credentials of your app
+
+     GetJson = Web.Contents("https://login.windows.net/common/oauth2/token", 
+     [ 
+         Headers = [ 
+                    #"Content-Type"="application/x-www-form-urlencoded;charset=UTF-8"], 
+         Content = Text.ToBinary("resource=https://manage.office.com/ 
+                //Change the client ID
+                &client_id=CLIENT ID OF YOUR APP
+                &redirect_uri= https://localhost:12345/ 
+                //Change the client secret
+                &client_secret=CLIENT SECRET OF YOUR APP
+                &grant_type=authorization_code 
+                &code=" & Bearer)  
+     ] 
+), 
+FormatAsJson = Json.Document(GetJson), 
+// Gets token from the Json response 
+AccessToken = FormatAsJson[access_token], 
+AccessTokenHeader = "bearer " & AccessToken, 
+
+//You can change /Messages to get other things - see documentation
+GetJsonQuery = Web.Contents("https://manage.office.com/api/v1.0/sscinfra.com/ServiceComms/Messages", 
+     [ 
+         Headers = [#"Authorization"=AccessTokenHeader] 
+     ] 
+), 
+Data0  = Json.Document(GetJsonQuery) 
+in 
+    Data0 
